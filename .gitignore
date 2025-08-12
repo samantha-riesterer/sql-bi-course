@@ -1,0 +1,27 @@
+ # Database files
+ *.db
+ *.sqlite
+ *.sql~
+ # Temporary files
+ *.tmp
+ *.temp
+ *~
+ # System files
+ .DS_Store
+ Thumbs.db
+ # IDE files
+ .vscode/settings.json
+ *.swp
+ *.swo
+ # Sensitive information
+ config.ini
+ secrets.txt
+ *.env
+ # Large data files (if you add any later)
+ *.csv
+ *.xlsx
+ *.json
+ # Backup files
+ backup/
+ *.bak
+

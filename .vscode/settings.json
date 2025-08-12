@@ -1,0 +1,14 @@
+{
+    "pgsql.copilot.enable": false,
+    "pgsql.copilot.accessMode": "ro",
+    "chat.agent.enabled": false,
+    "chat.commandCenter.enabled": false,
+    "chat.notifyWindowOnConfirmation": true,
+    "telemetry.feedback.enabled": false,
+    "editor.guides.highlightActiveBracketPair": false,
+    "editor.guides.highlightActiveIndentation": false,
+    "editor.renderLineHighlight": "none",
+    "editor.inlineSuggest.syntaxHighlightingEnabled": false,
+    "sqltools.highlightQuery": false,
+    "editor.matchBrackets": "never"
+}
