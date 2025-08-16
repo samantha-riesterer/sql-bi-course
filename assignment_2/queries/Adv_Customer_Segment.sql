@@ -21,7 +21,7 @@
 
 
 
---set assignment date (real world use: CURRENT_DATE() directly)
+--set assignment date (real world use: CURRENT_DATE())
 WITH set_date AS (
     SELECT '2024-07-31'::DATE as analysis_date
 ),
@@ -31,32 +31,46 @@ WITH set_date AS (
 rfm_data AS (
     SELECT 
         o.customer_id,
-        SUM(o.total_amount) AS total_amount_spent,
-        COUNT(o.order_id) AS number_of_orders,
+        SUM(o.total_amount) AS total_amount_spent, --monetary
+        COUNT(o.order_id) AS number_of_orders, --frequency
         MAX(order_date) AS last_purchase_date,
-       EXTRACT(days FROM AGE(sd.analysis_date, MAX(o.order_date))) AS recency_days
+       EXTRACT(days FROM AGE(sd.analysis_date, MAX(o.order_date))) AS recency_days --recency
     FROM orders o
     CROSS JOIN set_date sd
     GROUP BY o.customer_id, sd.analysis_date
-)
-
-SELECT * FROM rfm_data;
-
+),
 
 --2. Apply NTILE() scoring to each dimension
+rfm_score_customers AS (
 
+    SELECT 
+        customer_id,
+        NTILE(5) OVER (ORDER BY recency_days DESC) AS recency_score,
+        NTILE(5) OVER (ORDER BY number_of_orders ASC) AS frequency_score,
+        NTILE(5) OVER (ORDER BY total_amount_spent ASC) AS monetary_score
+    FROM rfm_data
 
+),
 
 --3. Create segment assignment rules using CASE statements
 
-/*   Business Segments:
+customer_segments AS (
+    SELECT 
+        CASE
+            WHEN recency_score >= 4 AND frequency_score >= 4 AND monetary_score >= 4 THEN 'CHAMPIONS'
+            WHEN recency_score >= 4 AND frequency_score <= 2  THEN 'NEW CUSTOMERS'
+            WHEN recency_score <= 2 AND frequency_score <= 2 THEN 'LOST CUSTOMERS'
+            WHEN recency_score <=2 AND frequency_score >= 4 AND monetary_score >= 3 THEN 'AT RISK'
+            WHEN monetary_score >= 3 AND frequency_score >= 3 THEN 'LOYALISTS'              --tech customers don't make as frequent purchases
+            WHEN monetary_score >=2 AND frequency_score >= 2 THEN 'POTENTIAL LOYALISTS'
+            ELSE 'MIXED BEHAVIOR' 
+        END AS segments,
+        COUNT(customer_id) AS customer_count
+    FROM rfm_score_customers
+    GROUP BY segments
+)
 
-Champions: High in all three (R=5, F=5, M=5)
-Loyal Customers: High frequency and monetary, varying recency
-At Risk: Low recency, historically good customers
-New Customers: High recency, low frequency
-Lost Customers: Low in all dimensions */
-
+SELECT * FROM customer_segments;
 
 --4. Aggregate segment characteristics
 
