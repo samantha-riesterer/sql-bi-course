@@ -90,10 +90,8 @@ SELECT
    ROUND(segment_clv / SUM(segment_clv) OVER() * 100,2) || '%' AS revenue_contribution --segment % of total revenue
 FROM segment_data;
 
-
-
---retention rate indicators ??
---growth potential
+--Retention Rate by Segment (30, 60, 90 day)
+--Growth Potential Score (combination of purchase frequency trend, spending growth, category expansion)
 
 
 -- ================================================================================= --
@@ -101,7 +99,55 @@ FROM segment_data;
 -- Address:How are customers retained over time, and which acquisition periods had   --
 -- best retention                                                                    --
 -- ================================================================================= --
-/*-- LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) */
+/*Notes: 
+ Self-JOINs for cohort analysis
+ Advanced date calculations
+ Cross-tabulation techniques
+
+--  
+*/
+
+--1. Monthly cohort retention rates 
+    --cohort table with registration month and order months
+WITH customer_cohort AS( 
+    SELECT 
+        c.customer_id, 
+        DATE_TRUNC('month', c.registration_date) AS registration_month,
+       DATE_TRUNC('month', o.order_date) AS order_month,
+        DATE_TRUNC('month',LAG(o.order_date) OVER (PARTITION BY c.customer_id ORDER BY o.order_date)) AS prev_order_month
+    FROM customers c
+    LEFT JOIN orders o ON c.customer_id = o.customer_id
+)
+SELECT * FROM customer_cohort;
+     
+     
+     --calc retention rates
+
+
+
+
+--2.Cohort performance comparison 
+    --Revenue per Cohort - total and average revenue generated
+    --Order Frequency - how often cohort members purchase
+    --Average Order Value - spending patterns over time
+
+--3.Retention trends and patterns identification 
+    --Retention Rate - % of cohort still active in each period
+
+
+
+
+-- Calculate months between registration and purchase
+--DATE_PART('month', AGE(order_date, registration_date))
+-- Or use EXTRACT for month differences
+
+
+-- Count customers active in specific periods
+--COUNT(CASE WHEN [condition] THEN customer_id END)
+
+
+
+
 
 -- ================================================================================= --
 -- QUESTION 3: Customer Lifetime Value Modeling                                      --
