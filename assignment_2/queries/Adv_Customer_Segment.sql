@@ -75,6 +75,7 @@ segment_data AS (
     SELECT 
         cs.segment,
         COUNT(cs.customer_id) AS segment_size,
+        SUM(rfm.total_amount_spent) AS segment_clv,
         ROUND(AVG(rfm.recency_days),0) AS avg_recency,
         ROUND(AVG(rfm.number_of_orders),0) AS avg_frequency,
         ROUND(AVG(rfm.total_amount_spent),2) AS avg_monetary
@@ -83,18 +84,17 @@ segment_data AS (
     GROUP BY segment
 )
 
+--5. Final output with business metrics
+SELECT 
+    *,
+   ROUND(segment_clv / SUM(segment_clv) OVER() * 100,2) || '%' AS revenue_contribution --segment % of total revenue
+FROM segment_data;
 
-SELECT * FROM segment_data;
 
---revenue contribution % of total revenue 
---clv per segment 
+
 --retention rate indicators ??
 --growth potential
 
---ROUND at end
-/*
-
-*/
 
 -- ================================================================================= --
 -- QUESTION 2: Customer Cohort Analysis                                              --
