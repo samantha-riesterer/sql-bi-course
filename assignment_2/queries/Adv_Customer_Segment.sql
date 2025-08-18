@@ -15,10 +15,7 @@
    Notes: 
    Multi-dimensional logic for segment assignment
    Business rules based on score combinations
-   Instead of simple averages, consider weighted combinations or priority rules for segment assignment.
-
 ********************************************************************************************************************/
-
 
 
 --set assignment date (real world use: CURRENT_DATE())
@@ -40,43 +37,64 @@ rfm_data AS (
     GROUP BY o.customer_id, sd.analysis_date
 ),
 
---2. Apply NTILE() scoring to each dimension
+--2.Calculate score for each dimension for each customer using NTILE()
 rfm_score_customers AS (
 
     SELECT 
         customer_id,
+        total_amount_spent,
+        number_of_orders,
+        recency_days,
         NTILE(5) OVER (ORDER BY recency_days DESC) AS recency_score,
         NTILE(5) OVER (ORDER BY number_of_orders ASC) AS frequency_score,
         NTILE(5) OVER (ORDER BY total_amount_spent ASC) AS monetary_score
     FROM rfm_data
-
 ),
 
---3. Create segment assignment rules using CASE statements
+--3. Assign customers to a segment using CASE statements
 
-customer_segments AS (
+customer_segment AS (
     SELECT 
+        customer_id,
         CASE
             WHEN recency_score >= 4 AND frequency_score >= 4 AND monetary_score >= 4 THEN 'CHAMPIONS'
             WHEN recency_score >= 4 AND frequency_score <= 2  THEN 'NEW CUSTOMERS'
             WHEN recency_score <= 2 AND frequency_score <= 2 THEN 'LOST CUSTOMERS'
             WHEN recency_score <=2 AND frequency_score >= 4 AND monetary_score >= 3 THEN 'AT RISK'
-            WHEN monetary_score >= 3 AND frequency_score >= 3 THEN 'LOYALISTS'              --tech customers don't make as frequent purchases
+            WHEN monetary_score >= 3 AND frequency_score >= 3 THEN 'LOYALISTS'       -- lower requirements as tech customers don't make as frequent purchases
             WHEN monetary_score >=2 AND frequency_score >= 2 THEN 'POTENTIAL LOYALISTS'
             ELSE 'MIXED BEHAVIOR' 
-        END AS segments,
-        COUNT(customer_id) AS customer_count
+        END AS segment
     FROM rfm_score_customers
-    GROUP BY segments
+),
+
+
+--4. Group customers by segment and aggregate segment characteristics
+
+segment_data AS (
+    SELECT 
+        cs.segment,
+        COUNT(cs.customer_id) AS segment_size,
+        ROUND(AVG(rfm.recency_days),0) AS avg_recency,
+        ROUND(AVG(rfm.number_of_orders),0) AS avg_frequency,
+        ROUND(AVG(rfm.total_amount_spent),2) AS avg_monetary
+    FROM customer_segment cs
+    JOIN  rfm_score_customers rfm ON rfm.customer_id = cs.customer_id
+    GROUP BY segment
 )
 
-SELECT * FROM customer_segments;
 
---4. Aggregate segment characteristics
+SELECT * FROM segment_data;
 
+--revenue contribution % of total revenue 
+--clv per segment 
+--retention rate indicators ??
+--growth potential
 
+--ROUND at end
+/*
 
-
+*/
 
 -- ================================================================================= --
 -- QUESTION 2: Customer Cohort Analysis                                              --
