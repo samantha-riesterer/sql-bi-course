@@ -15,6 +15,9 @@
    Notes: 
    Multi-dimensional logic for segment assignment
    Business rules based on score combinations
+   POTENTIAL ADD ONS:
+    --Retention Rate by Segment (30, 60, 90 day)
+    --Growth Potential Score (combination of purchase frequency trend, spending growth, category expansion)
 ********************************************************************************************************************/
 
 
@@ -90,8 +93,6 @@ SELECT
    ROUND(segment_clv / SUM(segment_clv) OVER() * 100,2) || '%' AS revenue_contribution --segment % of total revenue
 FROM segment_data;
 
---Retention Rate by Segment (30, 60, 90 day)
---Growth Potential Score (combination of purchase frequency trend, spending growth, category expansion)
 
 
 -- ================================================================================= --
@@ -99,51 +100,102 @@ FROM segment_data;
 -- Address:How are customers retained over time, and which acquisition periods had   --
 -- best retention                                                                    --
 -- ================================================================================= --
-/*Notes: 
- Self-JOINs for cohort analysis
- Advanced date calculations
- Cross-tabulation techniques
+/*************************************************************************************
+ IN PROGRESS Notes: 
+ registration date is NOT the "first" order date 
+ Need to fix date comparisons in order to account for that
+**************************************************************************************/
 
---  
-*/
+--RAW DATA 
 
---1. Monthly cohort retention rates 
-    --cohort table with registration month and order months
-WITH customer_cohort AS( 
-    SELECT 
+--1. table with registration month and order months for customers
+-- Calculate months between registration and purchases
+WITH customer_order_data AS( 
+    SELECT DISTINCT
         c.customer_id, 
         DATE_TRUNC('month', c.registration_date) AS registration_month,
-       DATE_TRUNC('month', o.order_date) AS order_month,
-        DATE_TRUNC('month',LAG(o.order_date) OVER (PARTITION BY c.customer_id ORDER BY o.order_date)) AS prev_order_month
+        DATE_TRUNC('month', o.order_date) AS order_month,
+        EXTRACT(month FROM AGE(
+        DATE_TRUNC('month', o.order_date), 
+        DATE_TRUNC('month', c.registration_date)
+        )) AS months_since_reg    
     FROM customers c
     LEFT JOIN orders o ON c.customer_id = o.customer_id
+    ORDER BY c.customer_id
 )
-SELECT * FROM customer_cohort;
-     
-     
-     --calc retention rates
+
+
+--FOR TESTING (REMOVE)
+SELECT * FROM customer_order_data;
+/*
+SELECT 
+    TO_CHAR(registration_month, 'MON YYYY') AS cohort,
+    COUNT(customer_id) AS num_customers
+FROM customer_order_data
+GROUP BY registration_month
+ORDER BY registration_month ASC;
+*/
+
+
+--ANALYTICAL DATA 
+
+
+--2. Monthly cohort retention rates 
+cohort_retention AS (
+    TO_CHAR(registration_month,'MON YYYY') AS cohort_month,
+    COUNT(customer_id) AS cohort_size, 
+    --EXTRACT(month FROM AGE(registration_month,order_month)) AS months_since_registration (NOTE: trying to avoid calculating here, because of GROUP BY)
+    CASE                                                       
+        WHEN months_since_registration = 0 THEN 'Month 0'
+        WHEN months_since_registration = 1 THEN 'Month 1'
+        WHEN months_since_registration >= 2 AND months_since_registration <=3 THEN 'Month 2-3'
+        WHEN months_since_registration >= 4 AND months_since_registration <= 6 THEN 'Month 4-6'
+        WHEN months_since_registration >= 7 AND <= 12 THEN 'Month 7-12'
+        ELSE "12 Month +"
+    END AS retention_period,
+
+    
+-- Count customers active in specific periods
+--COUNT(CASE WHEN [condition] THEN customer_id END)
+        --rows: percent of cohort active in that period (starts at 100)
+    FROM customer_order_data
+    GROUP BY cd.registration_month
+    ORDER BY cd.registration_month ASC
+)
 
 
 
 
 --2.Cohort performance comparison 
-    --Revenue per Cohort - total and average revenue generated
-    --Order Frequency - how often cohort members purchase
-    --Average Order Value - spending patterns over time
+
+customer_cohort_performance AS(
+    SELECT 
+        TO_CHAR(cd.registration_month,'MON YYYY') AS cohort_month,
+        SUM(o.total_amount) AS total_revenue,
+        ROUND(AVG(o.total_amount),2) AS avg_revenue   --Revenue per Cohort - total and average revenue generated
+        --Order Frequency - how often cohort members purchase
+        --Average Order Value - spending patterns over time  AOV = total revenue / sum order quantity
+            --SUM(o.total_amount) / SUM(oi.quantity) --NOTE: to get quantity from order_items need order_id 
+    FROM customer_order_data cd
+    LEFT JOIN orders o ON cd.customer_id = o.customer_id
+    GROUP BY cd.registration_month
+    ORDER BY cd.registration_month ASC
+)
+
+
+--for testing (remove later)
+--SELECT * FROM customer_cohort_performance;
+ 
+
+
+--PRESENTATION LAYER
 
 --3.Retention trends and patterns identification 
-    --Retention Rate - % of cohort still active in each period
 
 
 
 
--- Calculate months between registration and purchase
---DATE_PART('month', AGE(order_date, registration_date))
--- Or use EXTRACT for month differences
 
-
--- Count customers active in specific periods
---COUNT(CASE WHEN [condition] THEN customer_id END)
 
 
 
