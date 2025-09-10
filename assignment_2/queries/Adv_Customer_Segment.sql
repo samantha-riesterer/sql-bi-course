@@ -193,6 +193,18 @@ customer_cohort_performance AS(
 --3.Retention trends and patterns identification 
 
 
+--customers with orders prior to their registration date
+SELECT c.customer_id, c.registration_date, MIN(o.order_date) as first_order
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.registration_date
+HAVING MIN(o.order_date) < c.registration_date;
+
+--customers with no orders
+SELECT COUNT(*) as null_orders
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_date IS NULL;
 
 
 
