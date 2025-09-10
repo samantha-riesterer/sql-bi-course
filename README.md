@@ -1,10 +1,11 @@
- # SQL Data Analyst Course
- **Student:** Samantha Riesterer
-**Course:** 6-Week SQL for Data Analysts 
-**Focus:** Business Intelligence & Customer Analytics
+# SQL Business Analytics Course
+NOTE: ON STANDBY 9/25
+**Student:** Samantha Riesterer
+**Course:** 6-Week SQL for business data analytics
+**Focus:** Business intelligence & customer analytics
 
 ## Project Overview
- Comprehensive SQL course focused on real-world data analyst skills, progressing from basic analysis to advanced
+ Comprehensive SQL course focused on real-world business intelligence  skills, progressing from basic analysis to advanced
 
 ## Repository Structure
 - `assignment_1/` - E-commerce sales analysis foundations
